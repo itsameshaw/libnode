@@ -1,0 +1,41 @@
+name: OnBuild
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["build/*"]
+
+    workflow_dispatch:
+
+env:
+  NODE_VERSION: "v18.18.2"
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64]
+        os: [macos-latest, ubuntu-latest, windows-2019]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download source code
+        shell: bash
+        run: ./scripts/download.sh
+      - name: Build
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            ./scripts/build-linux.sh
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            ./scripts/build-windows.sh
+          else
+            ./scripts/build-macos.sh
+          fi
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2.3.1
+        with:
+          name: libnode-${{ env.NODE_VERSION }}-${{ runner.os }}-${{ matrix.arch }}
+          path: ./artifacts
